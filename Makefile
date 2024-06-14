@@ -15,9 +15,6 @@ clean:
 	$(GOCLEAN)
 	rm -f $(BINARY_NAME)
 
-deps:
-	$(GOGET) github.com/some/package
-
 build-linux:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(BINARY_NAME) -v
 
