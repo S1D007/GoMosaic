@@ -92,42 +92,62 @@ func uploadHandler(c *fiber.Ctx) error {
 	cellWidth := width / cols
 	cellHeight := height / rows
 
+	var wg sync.WaitGroup
+	errors := make(chan error, rows*cols)
+
 	for row := 0; row < rows; row++ {
 		for col := 0; col < cols; col++ {
-			x0 := col * cellWidth
-			y0 := row * cellHeight
-			x1 := x0 + cellWidth
-			y1 := y0 + cellHeight
-			if x1 > width {
-				x1 = width
-			}
-			if y1 > height {
-				y1 = height
-			}
+			wg.Add(1)
+			go func(row, col int) {
+				defer wg.Done()
 
-			subImg := img.(interface {
-				SubImage(r image.Rectangle) image.Image
-			}).SubImage(image.Rect(x0, y0, x1, y1))
+				x0 := col * cellWidth
+				y0 := row * cellHeight
+				x1 := x0 + cellWidth
+				y1 := y0 + cellHeight
+				if x1 > width {
+					x1 = width
+				}
+				if y1 > height {
+					y1 = height
+				}
 
-			outputFile := filepath.Join(outputDir, fmt.Sprintf("R%dC%d.%s", row+1, col+1, format))
-			outFile, err := os.Create(outputFile)
-			if err != nil {
-				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create output file"})
-			}
-			defer outFile.Close()
+				subImg := img.(interface {
+					SubImage(r image.Rectangle) image.Image
+				}).SubImage(image.Rect(x0, y0, x1, y1))
 
-			switch format {
-			case "jpeg":
-				err = jpeg.Encode(outFile, subImg, nil)
-			case "png":
-				err = png.Encode(outFile, subImg)
-			default:
-				return c.Status(fiber.StatusUnsupportedMediaType).JSON(fiber.Map{"error": "Unsupported image format"})
-			}
-			if err != nil {
-				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to save image file"})
-			}
+				outputFile := filepath.Join(outputDir, fmt.Sprintf("R%dC%d.%s", row+1, col+1, format))
+				outFile, err := os.Create(outputFile)
+				if err != nil {
+					errors <- fmt.Errorf("failed to create output file %s: %v", strings.ToLower(outputFile), err)
+					return
+				}
+				defer outFile.Close()
+
+				var encodeErr error
+				switch format {
+				case "jpeg":
+					encodeErr = jpeg.Encode(outFile, subImg, nil)
+				case "png":
+					encodeErr = png.Encode(outFile, subImg)
+				default:
+					encodeErr = fmt.Errorf("unsupported image format: %s", strings.ToLower(format))
+				}
+
+				if encodeErr != nil {
+					errors <- fmt.Errorf("failed to encode image %s: %v", strings.ToLower(outputFile), encodeErr)
+				}
+			}(row, col)
 		}
+	}
+
+	go func() {
+		wg.Wait()
+		close(errors)
+	}()
+
+	for err := range errors {
+		fmt.Println("Error:", err)
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
