@@ -14,7 +14,12 @@ func main() {
 		BodyLimit: 1024 * 1024 * 1024,
 	})
 
-	app.Use(cors.New())
+	app.Use(cors.New(
+		cors.Config{
+			AllowOrigins: "*",
+			AllowHeaders: "Origin, Content-Type, Accept",
+		},
+	))
 
 	app.Use(logger.New())
 
