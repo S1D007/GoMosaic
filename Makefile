@@ -4,7 +4,7 @@ GOCLEAN = $(GOCMD) clean
 GOTEST = $(GOCMD) test
 GOGET = $(GOCMD) get
 
-GOFLAGS ?= -ldflags="-s -w" 
+GOFLAGS ?= -ldflags="-s -w"
 
 BUILD_LINUX = CGO_ENABLED=0 GOOS=linux GOARCH=amd64
 BUILD_WINDOWS = CGO_ENABLED=0 GOOS=windows GOARCH=amd64
@@ -12,29 +12,27 @@ BUILD_MAC = CGO_ENABLED=0 GOOS=darwin GOARCH=amd64
 
 BINARY_NAME = mosaic
 VERSION ?= latest
+MAIN_PACKAGE = main.go
 
 .PHONY: all build build-linux build-windows build-mac clean test deps help
 
-all: clean test build
+all: clean build
 
 build:
-	$(GOBUILD) $(GOFLAGS) -o $(BINARY_NAME) -v -ldflags="-X main.Version=$(VERSION)" ./...
+	$(GOBUILD) $(GOFLAGS) -o $(BINARY_NAME) -v -ldflags "-X main.Version=$(VERSION)" $(MAIN_PACKAGE)
 
 build-linux:
-	$(BUILD_LINUX) $(GOBUILD) $(GOFLAGS) -o $(BINARY_NAME) -v -ldflags="-X main.Version=$(VERSION)" ./...
+	$(BUILD_LINUX) $(GOBUILD) $(GOFLAGS) -o $(BINARY_NAME) -v -ldflags "-X main.Version=$(VERSION)" $(MAIN_PACKAGE)
 
 build-windows:
-	$(BUILD_WINDOWS) $(GOBUILD) $(GOFLAGS) -o $(BINARY_NAME).exe -v -ldflags="-X main.Version=$(VERSION)" ./...
+	$(BUILD_WINDOWS) $(GOBUILD) $(GOFLAGS) -o $(BINARY_NAME).exe -v -ldflags "-X main.Version=$(VERSION)" $(MAIN_PACKAGE)
 
 build-mac:
-	$(BUILD_MAC) $(GOBUILD) $(GOFLAGS) -o $(BINARY_NAME) -v -ldflags="-X main.Version=$(VERSION)" ./...
+	$(BUILD_MAC) $(GOBUILD) $(GOFLAGS) -o $(BINARY_NAME) -v -ldflags "-X main.Version=$(VERSION)" $(MAIN_PACKAGE)
 
 clean:
 	$(GOCLEAN)
 	rm -f $(BINARY_NAME) $(BINARY_NAME).exe
-
-test:
-	$(GOTEST) -v ./...
 
 deps:
 	$(GOGET) -u ./...
