@@ -18,7 +18,8 @@ import (
 )
 
 type gridCell struct {
-	img image.Image
+	img      image.Image
+	fileName string
 }
 
 var (
@@ -63,12 +64,12 @@ func OverlayImages(inputFile, gridCellFolder, outputFolder string, opacity float
 
 		alphaImg := gridCell.alpha(opacity)
 		draw.DrawMask(outputImg, gridCell.img.Bounds(), gridCell.img, image.Point{}, alphaImg, image.Point{}, draw.Over)
-	}
+		outputFilePath := filepath.Join(outputFolder, gridCell.fileName)
+		err = SaveImage(outputImg, outputFilePath)
 
-	outputFilePath := filepath.Join(outputFolder, filepath.Base(inputFile))
-	err = SaveImage(outputImg, outputFilePath)
-	if err != nil {
-		fmt.Println("Error saving output image:", err)
+		if err != nil {
+			fmt.Println("Error saving output image:", err)
+		}
 	}
 }
 
@@ -105,12 +106,12 @@ func LoadGridCells(gridCellFolder string) ([]gridCell, error) {
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() && (strings.HasSuffix(path, ".jpg") || strings.HasSuffix(path, ".jpeg") || strings.HasSuffix(path, ".png")) {
+		if !info.IsDir() && isSupportedFormat(path) {
 			img, err := LoadImage(path)
 			if err != nil {
 				return err
 			}
-			gridCells = append(gridCells, gridCell{img: img})
+			gridCells = append(gridCells, gridCell{img: img, fileName: info.Name()})
 		}
 		return nil
 	})
@@ -138,7 +139,7 @@ func SaveImage(img image.Image, filePath string) error {
 	}
 	defer outFile.Close()
 
-	switch filepath.Ext(filePath) {
+	switch strings.ToLower(filepath.Ext(filePath)) {
 	case ".jpg", ".jpeg":
 		err = jpeg.Encode(outFile, img, nil)
 	case ".png":
@@ -149,13 +150,20 @@ func SaveImage(img image.Image, filePath string) error {
 	return err
 }
 
-func HandleNewFile(filePath, gridCellFolder, outputFolder string, opacity float64) {
-	if _, exists := processedFiles.Load(filePath); exists {
-		return
+func isSupportedFormat(filePath string) bool {
+	ext := strings.ToLower(filepath.Ext(filePath))
+	switch ext {
+	case ".jpg", ".jpeg", ".png":
+		return true
+	default:
+		return false
 	}
+}
+
+func HandleNewFile(filePath, gridCellFolder, outputFolder string, opacity float64) {
 	processedFiles.Store(filePath, struct{}{})
 
-	if strings.HasSuffix(filePath, ".jpg") || strings.HasSuffix(filePath, ".jpeg") || strings.HasSuffix(filePath, ".png") {
+	if isSupportedFormat(filePath) {
 		fmt.Println("New file detected:", filePath)
 		OverlayImages(filePath, gridCellFolder, outputFolder, opacity)
 	}

@@ -26,7 +26,7 @@ func main() {
 	app.Post("/mosaic", controllers.CutController)
 	app.Post("/start-overlay", controllers.StartOverlayController)
 
-	err := app.Listen(":3000")
+	err := app.Listen(":8000")
 	if err != nil {
 		fmt.Println("Server failed to start:", err)
 	}
