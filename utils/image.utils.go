@@ -46,6 +46,13 @@ func OverlayImages(inputFile, gridCellFolder, outputFolder string, opacity float
 		fmt.Println("No grid cells found")
 		return
 	}
+	processedImageFolder := filepath.Join(gridCellFolder, "processed")
+    err = os.MkdirAll(processedImageFolder, os.ModePerm)
+    if err != nil {
+        fmt.Println("Error creating processed images folder:", err)
+        return
+    }
+
 	
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(gridCells), func(i, j int) {
@@ -59,7 +66,7 @@ func OverlayImages(inputFile, gridCellFolder, outputFolder string, opacity float
 	outputImg := image.NewRGBA(bounds)
 
 	draw.Draw(outputImg, bounds, resizedInputImg, image.Point{}, draw.Src)
-	processedImageFolder:= "/home/ayush/Desktop/dhanda/GoMosaic/output/processed"
+	
 	for i, gridCell := range gridCells {
 		if i >= bounds.Dx()/gridCellSize.X*bounds.Dy()/gridCellSize.Y {
 			break
@@ -68,15 +75,15 @@ func OverlayImages(inputFile, gridCellFolder, outputFolder string, opacity float
 		alphaImg := gridCell.alpha(opacity)
 
 		draw.DrawMask(outputImg, gridCell.img.Bounds(), gridCell.img, image.Point{}, alphaImg, image.Point{}, draw.Over)
-		   // Move the processed grid cell to the processed images folder
-		   err := MoveProcessedImage(gridCellFolder, processedImageFolder, gridCell.fileName)
-		   if err != nil {
-			   fmt.Println("Error moving processed image:", err)
-			   return
-		   }
+		// Move the processed grid cell to the processed images folder
+		err := MoveProcessedImage(gridCellFolder, processedImageFolder, gridCell.fileName)
+		if err != nil {
+			fmt.Println("Error moving processed image:", err)
+			return
+		}
    
-		   // Remove the processed grid cell from the slice
-		   gridCells = append(gridCells[:i], gridCells[i+1:]...)
+		// Remove the processed grid cell from the slice
+		gridCells = append(gridCells[:i], gridCells[i+1:]...)
 		outputFilePath := filepath.Join(outputFolder, gridCell.fileName)
 		err = SaveImage(outputImg, outputFilePath)
 
