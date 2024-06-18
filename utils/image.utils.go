@@ -29,12 +29,15 @@ var (
 func OverlayImages(inputFile, gridCellFolder, outputFolder string, opacity float64) {
 	inputImg, err := LoadImage(inputFile)
 	if err != nil {
+		fmt.Println(inputImg)
 		fmt.Println("Error loading input image:", err)
 		return
 	}
 
 	gridCells, err := LoadGridCells(gridCellFolder)
+	println(gridCells)
 	if err != nil {
+		fmt.Println("gridCell")
 		fmt.Println("Error loading grid cells:", err)
 		return
 	}
@@ -43,7 +46,7 @@ func OverlayImages(inputFile, gridCellFolder, outputFolder string, opacity float
 		fmt.Println("No grid cells found")
 		return
 	}
-
+	
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(gridCells), func(i, j int) {
 		gridCells[i], gridCells[j] = gridCells[j], gridCells[i]
@@ -56,14 +59,24 @@ func OverlayImages(inputFile, gridCellFolder, outputFolder string, opacity float
 	outputImg := image.NewRGBA(bounds)
 
 	draw.Draw(outputImg, bounds, resizedInputImg, image.Point{}, draw.Src)
-
+	processedImageFolder:= "/home/ayush/Desktop/dhanda/GoMosaic/output/processed"
 	for i, gridCell := range gridCells {
 		if i >= bounds.Dx()/gridCellSize.X*bounds.Dy()/gridCellSize.Y {
 			break
 		}
 
 		alphaImg := gridCell.alpha(opacity)
+
 		draw.DrawMask(outputImg, gridCell.img.Bounds(), gridCell.img, image.Point{}, alphaImg, image.Point{}, draw.Over)
+		   // Move the processed grid cell to the processed images folder
+		   err := MoveProcessedImage(gridCellFolder, processedImageFolder, gridCell.fileName)
+		   if err != nil {
+			   fmt.Println("Error moving processed image:", err)
+			   return
+		   }
+   
+		   // Remove the processed grid cell from the slice
+		   gridCells = append(gridCells[:i], gridCells[i+1:]...)
 		outputFilePath := filepath.Join(outputFolder, gridCell.fileName)
 		err = SaveImage(outputImg, outputFilePath)
 
@@ -167,4 +180,17 @@ func HandleNewFile(filePath, gridCellFolder, outputFolder string, opacity float6
 		fmt.Println("New file detected:", filePath)
 		OverlayImages(filePath, gridCellFolder, outputFolder, opacity)
 	}
+}
+
+// move the processed image to ProcessedImage folder
+func MoveProcessedImage(gridCellFolder, processedImageFolder, fileName string) error {
+    sourcePath := filepath.Join(gridCellFolder, fileName)
+    destPath := filepath.Join(processedImageFolder, fileName)
+
+    err := os.Rename(sourcePath, destPath)
+    if err != nil {
+        return err
+    }
+
+    return nil
 }

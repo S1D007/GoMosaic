@@ -11,6 +11,7 @@ func StartOverlayController(c *fiber.Ctx) error {
 	gridCellFolder := c.FormValue("gridCellFolder")
 	inputFolder := c.FormValue("inputFolder")
 	outputFolder := c.FormValue("outputFolder")
+	// processedImageFolder:= c.FormValue("processed")
 	opacityStr := c.FormValue("opacity")
 
 	if gridCellFolder == "" || inputFolder == "" || outputFolder == "" || opacityStr == "" {
@@ -26,3 +27,4 @@ func StartOverlayController(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Overlay process started"})
 }
+
