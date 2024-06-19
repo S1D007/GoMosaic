@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-     "start:backend": "cd server && go run main.go"
+     "start:backend": "./mosaic"
   },
   "dependencies": {
     "@tauri-apps/api": "^1.5.6",
