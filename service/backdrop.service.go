@@ -1,17 +1,20 @@
 package service
 
 import (
+	"path/filepath"
+
 	"github.com/fogleman/gg"
 )
 
 func CalculateFontSize(boxSize int, text string) float64 {
 	const tolerance = 0.8
-	fontSize := float64(boxSize) / 1.5
+	fontSize := float64(boxSize) / 1.8
 	dc := gg.NewContext(1, 1)
 	defer dc.Clear()
 
 	for {
-		dc.LoadFontFace("./fonts/roboto.ttf", fontSize)
+		fontFilePath := filepath.Join("fonts", "roboto.ttf")
+		dc.LoadFontFace(fontFilePath, fontSize)
 		textWidth, _ := dc.MeasureString(text)
 
 		if textWidth < float64(boxSize) || fontSize <= tolerance {

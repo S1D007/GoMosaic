@@ -6,7 +6,6 @@ import (
 	"image/color"
 	"image/png"
 	"math"
-	"os"
 	"path/filepath"
 
 	"mosaic/service"
@@ -46,7 +45,8 @@ func BackdropHandler(c *fiber.Ctx) error {
 	fontSize := service.CalculateFontSize(int(math.Min(float64(GridCellWidth), float64(GridCellHeight))), fmt.Sprintf("R%dC%d", data.Rows, data.Columns))
 	fmt.Println("Font size: ", fontSize)
 	dc.SetColor(color.White)
-	dc.LoadFontFace("./fonts/roboto.ttf", fontSize)
+	fontFilePath := filepath.Join("fonts", "roboto.ttf")
+	dc.LoadFontFace(fontFilePath, fontSize)
 
 	rowSpacing := float64(data.Height) / float64(data.Rows)
 	columnSpacing := float64(data.Width) / float64(data.Columns)
@@ -74,24 +74,8 @@ func BackdropHandler(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to encode image"})
 	}
+	c.Set("Content-Type", "image/png")
+	c.Set("Content-Disposition", "attachment; filename=backdrop.png")
 
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to get home directory"})
-	}
-
-	downloadPath := filepath.Join(homeDir, "Downloads", "backdrop.png")
-
-	file, err := os.Create(downloadPath)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create file"})
-	}
-	defer file.Close()
-
-	_, err = file.Write(buffer.Bytes())
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to write to file"})
-	}
-
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Image saved successfully", "path": downloadPath})
+	return c.SendStream(bytes.NewReader(buffer.Bytes()))
 }
