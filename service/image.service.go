@@ -7,6 +7,7 @@ import (
 	"image/draw"
 	"image/jpeg"
 	"image/png"
+	"math"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"github.com/nfnt/resize"
+	// "github.com/nfnt/resize"
 )
 
 type gridCell struct {
@@ -35,7 +37,7 @@ func OverlayImages(inputFile, gridCellFolder, outputFolder string, opacity float
 	}
 
 	gridCells, err := LoadGridCells(gridCellFolder)
-	println(gridCells)
+	// println(gridCells)
 	if err != nil {
 		fmt.Println("gridCell")
 		fmt.Println("Error loading grid cells:", err)
@@ -60,19 +62,21 @@ func OverlayImages(inputFile, gridCellFolder, outputFolder string, opacity float
 
 	gridCellSize := gridCells[0].img.Bounds().Size()
 	resizedInputImg := ResizeAndCrop(inputImg, gridCellSize)
-
+	// fmt.Println(resizedInputImg);
 	bounds := resizedInputImg.Bounds()
 	outputImg := image.NewRGBA(bounds)
 
 	draw.Draw(outputImg, bounds, resizedInputImg, image.Point{}, draw.Src)
 
 	for i, gridCell := range gridCells {
+		fmt.Println("entry")
 		if i >= bounds.Dx()/gridCellSize.X*bounds.Dy()/gridCellSize.Y {
+			fmt.Println("break")
 			break
 		}
 
 		alphaImg := gridCell.alpha(opacity)
-
+		fmt.Println(alphaImg)
 		draw.DrawMask(outputImg, gridCell.img.Bounds(), gridCell.img, image.Point{}, alphaImg, image.Point{}, draw.Over)
 
 		err := MoveProcessedImage(gridCellFolder, processedImageFolder, gridCell.fileName)
@@ -80,10 +84,11 @@ func OverlayImages(inputFile, gridCellFolder, outputFolder string, opacity float
 			fmt.Println("Error moving processed image:", err)
 			return
 		}
+		// Remove the processed grid cell from the slice
 		gridCells = append(gridCells[:i], gridCells[i+1:]...)
 		outputFilePath := filepath.Join(outputFolder, gridCell.fileName)
 		err = SaveImage(outputImg, outputFilePath)
-
+		fmt.Println("exit")
 		if err != nil {
 			fmt.Println("Error saving output image:", err)
 		}
@@ -91,19 +96,29 @@ func OverlayImages(inputFile, gridCellFolder, outputFolder string, opacity float
 }
 
 func ResizeAndCrop(img image.Image, size image.Point) image.Image {
-	resizedImg := resize.Resize(uint(size.X), uint(size.Y), img, resize.Lanczos3)
 
-	dx, dy := resizedImg.Bounds().Dx(), resizedImg.Bounds().Dy()
-	x0 := (dx - size.X) / 2
-	y0 := (dy - size.Y) / 2
-	x1 := x0 + size.X
-	y1 := y0 + size.Y
+	originalBounds := img.Bounds()
+	originalWidth := originalBounds.Dx()
+	originalHeight := originalBounds.Dy()
 
-	croppedImg := resizedImg.(interface {
+	minDim := math.Min(float64(originalWidth), float64(originalHeight))
+
+	var xOffset, yOffset int
+	if originalWidth > originalHeight {
+		xOffset = (originalWidth - int(minDim)) / 2
+	} else {
+		yOffset = (originalHeight - int(minDim)) / 2
+	}
+
+	cropRect := image.Rect(xOffset, yOffset, xOffset+int(minDim), yOffset+int(minDim))
+
+	croppedImg := img.(interface {
 		SubImage(r image.Rectangle) image.Image
-	}).SubImage(image.Rect(x0, y0, x1, y1))
+	}).SubImage(cropRect)
 
-	return croppedImg
+	resizedImg := resize.Resize(uint(size.X), uint(size.Y), croppedImg, resize.Lanczos3)
+
+	return resizedImg
 }
 
 func LoadImage(filePath string) (image.Image, error) {
