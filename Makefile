@@ -22,13 +22,13 @@ build:
 	$(GOBUILD) $(GOFLAGS) -o $(BINARY_NAME) -v -ldflags "-X main.Version=$(VERSION)" $(MAIN_PACKAGE)
 
 build-linux:
-	$(BUILD_LINUX) $(GOBUILD) $(GOFLAGS) -o $(BINARY_NAME) -v -ldflags "-X main.Version=$(VERSION)" $(MAIN_PACKAGE)
+	$(BUILD_LINUX) $(GOBUILD) $(GOFLAGS) -o $(BINARY_NAME)-linux -v -ldflags "-X main.Version=$(VERSION)" $(MAIN_PACKAGE)
 
 build-windows:
-	$(BUILD_WINDOWS) $(GOBUILD) $(GOFLAGS) -o $(BINARY_NAME).exe -v -ldflags "-X main.Version=$(VERSION)" $(MAIN_PACKAGE)
+	$(BUILD_WINDOWS) $(GOBUILD) $(GOFLAGS) -o $(BINARY_NAME)-windows.exe -v -ldflags "-X main.Version=$(VERSION)" $(MAIN_PACKAGE)
 
 build-mac:
-	$(BUILD_MAC) $(GOBUILD) $(GOFLAGS) -o $(BINARY_NAME) -v -ldflags "-X main.Version=$(VERSION)" $(MAIN_PACKAGE)
+	$(BUILD_MAC) $(GOBUILD) $(GOFLAGS) -o $(BINARY_NAME)-mac -v -ldflags "-X main.Version=$(VERSION)" $(MAIN_PACKAGE)
 
 clean:
 	$(GOCLEAN)
