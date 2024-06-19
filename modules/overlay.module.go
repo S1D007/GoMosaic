@@ -2,7 +2,7 @@ package modules
 
 import (
 	"fmt"
-	"mosaic/utils"
+	"mosaic/service"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -25,7 +25,7 @@ func MonitorInputFolder(gridCellFolder, inputFolder, outputFolder string, opacit
 					return
 				}
 				if event.Op&fsnotify.Create == fsnotify.Create {
-					utils.OverlayImages(event.Name, gridCellFolder, outputFolder, opacity)
+					service.OverlayImages(event.Name, gridCellFolder, outputFolder, opacity)
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {

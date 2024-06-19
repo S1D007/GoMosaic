@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"mosaic/controllers"
-	"mosaic/backdrop"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -25,7 +25,7 @@ func main() {
 
 	app.Post("/mosaic", controllers.CutController)
 	app.Post("/start-overlay", controllers.StartOverlayController)
-	app.Post("/backdrop",backdrop.BackdropHandler)
+	app.Post("/backdrop", controllers.BackdropHandler)
 
 	err := app.Listen(":8000")
 	if err != nil {

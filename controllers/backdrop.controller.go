@@ -1,4 +1,4 @@
-package backdrop
+package controllers
 
 import (
 	"bytes"
@@ -6,60 +6,25 @@ import (
 	"image/color"
 	"image/png"
 	"math"
-	"mosaic/aws"
+	"os"
+	"path/filepath"
+
+	"mosaic/service"
 
 	"github.com/fogleman/gg"
 	"github.com/gofiber/fiber/v2"
 )
 
 type Backdrop struct {
-	ID      string `json:"eventId"`
-	Rows    int    `json:"rows"`
-	Columns int    `json:"cols"`
-	Width   int    `json:"width"`
-	Height  int    `json:"height"`
-}
-
-func calculateFontSize(boxSize int, text string) float64 {
-	const tolerance = 0.8
-	fontSize := float64(boxSize) / 1.5
-	dc := gg.NewContext(1, 1)
-	defer dc.Clear()
-
-	for {
-		dc.LoadFontFace("./fonts/roboto.ttf", fontSize)
-		textWidth, _ := dc.MeasureString(text)
-
-		if textWidth < float64(boxSize) || fontSize <= tolerance {
-			break
-		}
-		fontSize *= 0.3
-	}
-
-	lowerBound := fontSize / 2
-	upperBound := fontSize
-
-	for lowerBound < upperBound-tolerance {
-		mid := (lowerBound + upperBound) / 2
-		dc.LoadFontFace("./fonts/roboto.ttf", mid)
-		textWidth, _ := dc.MeasureString(text)
-
-		if textWidth < float64(boxSize) {
-			lowerBound += mid
-		} else {
-			upperBound = mid
-		}
-	}
-
-	return lowerBound
+	Rows    int `json:"rows"`
+	Columns int `json:"cols"`
+	Width   int `json:"width"`
+	Height  int `json:"height"`
 }
 
 func BackdropHandler(c *fiber.Ctx) error {
 	data := new(Backdrop)
 	err := c.BodyParser(data)
-	if data.ID == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "eventId is required"})
-	}
 	if data.Rows <= 0 || data.Columns <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Rows and Columns must be positive integers"})
 	}
@@ -78,7 +43,7 @@ func BackdropHandler(c *fiber.Ctx) error {
 	GridCellWidth := data.Width / data.Columns
 	GridCellHeight := data.Height / data.Rows
 
-	fontSize := calculateFontSize(int(math.Min(float64(GridCellWidth), float64(GridCellHeight))), fmt.Sprintf("R%dC%d", data.Rows, data.Columns))
+	fontSize := service.CalculateFontSize(int(math.Min(float64(GridCellWidth), float64(GridCellHeight))), fmt.Sprintf("R%dC%d", data.Rows, data.Columns))
 	fmt.Println("Font size: ", fontSize)
 	dc.SetColor(color.White)
 	dc.LoadFontFace("./fonts/roboto.ttf", fontSize)
@@ -106,16 +71,27 @@ func BackdropHandler(c *fiber.Ctx) error {
 
 	buffer := new(bytes.Buffer)
 	err = png.Encode(buffer, dc.Image())
-
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to encode image"})
 	}
 
-	imageData, err := aws.UploadImageFromBuffer(buffer, data.ID, "gridImage")
-
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to upload image to S3"})
-
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to get home directory"})
 	}
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"data": imageData})
+
+	downloadPath := filepath.Join(homeDir, "Downloads", "backdrop.png")
+
+	file, err := os.Create(downloadPath)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create file"})
+	}
+	defer file.Close()
+
+	_, err = file.Write(buffer.Bytes())
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to write to file"})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Image saved successfully", "path": downloadPath})
 }
