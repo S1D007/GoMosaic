@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/nfnt/resize"
@@ -24,11 +23,9 @@ type gridCell struct {
 	fileName string
 }
 
-var (
-	processedFiles = sync.Map{}
-)
 
 func OverlayImages(inputFile, gridCellFolder, outputFolder string, opacity float64) {
+	fmt.Print(inputFile)
 	inputImg, err := LoadImage(inputFile)
 	if err != nil {
 		fmt.Println(inputImg)
@@ -76,7 +73,7 @@ func OverlayImages(inputFile, gridCellFolder, outputFolder string, opacity float
 		}
 
 		alphaImg := gridCell.alpha(opacity)
-		fmt.Println(alphaImg)
+		// fmt.Println(alphaImg)
 		draw.DrawMask(outputImg, gridCell.img.Bounds(), gridCell.img, image.Point{}, alphaImg, image.Point{}, draw.Over)
 
 		err := MoveProcessedImage(gridCellFolder, processedImageFolder, gridCell.fileName)
@@ -192,23 +189,28 @@ func isSupportedFormat(filePath string) bool {
 	}
 }
 
-func HandleNewFile(filePath, gridCellFolder, outputFolder string, opacity float64) {
-	processedFiles.Store(filePath, struct{}{})
 
-	if isSupportedFormat(filePath) {
-		fmt.Println("New file detected:", filePath)
-		OverlayImages(filePath, gridCellFolder, outputFolder, opacity)
-	}
-}
 
 func MoveProcessedImage(gridCellFolder, processedImageFolder, fileName string) error {
-	sourcePath := filepath.Join(gridCellFolder, fileName)
-	destPath := filepath.Join(processedImageFolder, fileName)
+    sourcePath := filepath.Join(gridCellFolder, fileName)
+    destPath := filepath.Join(processedImageFolder, fileName)
 
-	err := os.Rename(sourcePath, destPath)
-	if err != nil {
-		return err
-	}
+    // Ensure the destination directory exists
+    err := os.MkdirAll(processedImageFolder, os.ModePerm)
+    if err != nil {
+        return fmt.Errorf("error creating processed images folder: %w", err)
+    }
 
-	return nil
+    // Check if the source file exists
+    if _, err := os.Stat(sourcePath); os.IsNotExist(err) {
+        return fmt.Errorf("source file does not exist: %s", sourcePath)
+    }
+
+    // Attempt to move the file
+    err = os.Rename(sourcePath, destPath)
+    if err != nil {
+        return fmt.Errorf("error moving processed image from %s to %s: %w", sourcePath, destPath, err)
+    }
+
+    return nil
 }
