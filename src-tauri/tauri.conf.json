@@ -6,7 +6,7 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "hi2",
+    "productName": "GoMosaic",
     "version": "0.0.0"
   },
   "tauri": {
@@ -26,7 +26,7 @@
     },
     "windows": [
       {
-        "title": "hi2",
+        "title": "GoMosaic",
         "width": 800,
         "height": 600
       }
