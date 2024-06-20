@@ -28,7 +28,7 @@ func MonitorInputFolder(gridCellFolder, inputFolder, outputFolder string, opacit
 					return
 				}
 				if event.Op&fsnotify.Create == fsnotify.Create {
-					eventQueue <- event.Name // Add event to the queue
+					eventQueue <- event.Name
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
@@ -42,7 +42,7 @@ func MonitorInputFolder(gridCellFolder, inputFolder, outputFolder string, opacit
 	go func() {
 		for fileName := range eventQueue {
 			service.OverlayImages(fileName, gridCellFolder, outputFolder, opacity)
-			time.Sleep(100 * time.Millisecond) // Adding a slight delay to handle high-frequency events
+			time.Sleep(100 * time.Millisecond)
 		}
 	}()
 	// go func() {

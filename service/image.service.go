@@ -8,15 +8,12 @@ import (
 	"image/jpeg"
 	"image/png"
 	"math"
-	// "math/rand"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
-	// "time"
 
 	"github.com/nfnt/resize"
-	// "github.com/nfnt/resize"
 )
 
 type gridCell struct {
@@ -209,7 +206,6 @@ func MoveProcessedImage(gridCellFolder, processedImageFolder, fileName string) e
         return fmt.Errorf("source file does not exist: %s", sourcePath)
     }
 
-    // Attempt to move the file
     err = os.Rename(sourcePath, destPath)
     if err != nil {
         return fmt.Errorf("error moving processed image from %s to %s: %w", sourcePath, destPath, err)
