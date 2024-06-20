@@ -3,9 +3,11 @@ package modules
 import (
 	"fmt"
 	"mosaic/service"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 )
+
 
 func MonitorInputFolder(gridCellFolder, inputFolder, outputFolder string, opacity float64) {
 	watcher, err := fsnotify.NewWatcher()
@@ -16,6 +18,7 @@ func MonitorInputFolder(gridCellFolder, inputFolder, outputFolder string, opacit
 	defer watcher.Close()
 
 	done := make(chan bool)
+	eventQueue := make(chan string, 1000)
 
 	go func() {
 		for {
@@ -25,7 +28,7 @@ func MonitorInputFolder(gridCellFolder, inputFolder, outputFolder string, opacit
 					return
 				}
 				if event.Op&fsnotify.Create == fsnotify.Create {
-					service.OverlayImages(event.Name, gridCellFolder, outputFolder, opacity)
+					eventQueue <- event.Name // Add event to the queue
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
@@ -35,6 +38,31 @@ func MonitorInputFolder(gridCellFolder, inputFolder, outputFolder string, opacit
 			}
 		}
 	}()
+
+	go func() {
+		for fileName := range eventQueue {
+			service.OverlayImages(fileName, gridCellFolder, outputFolder, opacity)
+			time.Sleep(100 * time.Millisecond) // Adding a slight delay to handle high-frequency events
+		}
+	}()
+	// go func() {
+	// 	for {
+	// 		select {
+	// 		case event, ok := <-watcher.Events:
+	// 			if !ok {
+	// 				return
+	// 			}
+	// 			if event.Op&fsnotify.Create == fsnotify.Create {
+	// 				service.OverlayImages(event.Name, gridCellFolder, outputFolder, opacity)
+	// 			}
+	// 		case err, ok := <-watcher.Errors:
+	// 			if !ok {
+	// 				return
+	// 			}
+	// 			fmt.Println("Error:", err)
+	// 		}
+	// 	}
+	// }()
 
 	err = watcher.Add(inputFolder)
 	if err != nil {

@@ -8,11 +8,12 @@ import (
 	"image/jpeg"
 	"image/png"
 	"math"
-	"math/rand"
+	// "math/rand"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
+	"sync"
+	// "time"
 
 	"github.com/nfnt/resize"
 	// "github.com/nfnt/resize"
@@ -23,8 +24,10 @@ type gridCell struct {
 	fileName string
 }
 
-
+var mu sync.Mutex 
 func OverlayImages(inputFile, gridCellFolder, outputFolder string, opacity float64) {
+	mu.Lock()
+	defer mu.Unlock()
 	fmt.Print(inputFile)
 	inputImg, err := LoadImage(inputFile)
 	if err != nil {
@@ -52,10 +55,10 @@ func OverlayImages(inputFile, gridCellFolder, outputFolder string, opacity float
 		return
 	}
 
-	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(gridCells), func(i, j int) {
-		gridCells[i], gridCells[j] = gridCells[j], gridCells[i]
-	})
+	// rand.Seed(time.Now().UnixNano())
+	// rand.Shuffle(len(gridCells), func(i, j int) {
+	// 	gridCells[i], gridCells[j] = gridCells[j], gridCells[i]
+	// })
 
 	gridCellSize := gridCells[0].img.Bounds().Size()
 	resizedInputImg := ResizeAndCrop(inputImg, gridCellSize)
